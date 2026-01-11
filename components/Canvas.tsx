@@ -942,12 +942,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   }, [chromaticAberrationFilterId, settings.chromaticAberrationIntensity]);
 
   const layerFilterUrl = useMemo(() => {
+      if (isMobile) return 'none'; // PERFORMANCE: Disable Riso on mobile
       if (settings.risoEnabled) return `url(#${risoFilterId})`;
       return 'none';
-  }, [settings.risoEnabled, risoFilterId]);
+  }, [settings.risoEnabled, risoFilterId, isMobile]);
 
   const globalFilterUrl = useMemo(() => {
-      if (isMobile && isStrokeActive) return 'none'; // Throttle on mobile during drawing
+      if (isMobile) return 'none'; // PERFORMANCE: Disable expensive filters on mobile completely
 
       const filters = [];
       // Chain Global Filters: Chromatic Aberration -> Film -> Pictorialism
@@ -960,7 +961,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       if (settings.pictorialismEnabled) filters.push(`url(#${pictorialismFilterId})`);
       
       return filters.length > 0 ? filters.join(' ') : 'none';
-  }, [settings.filmEnabled, settings.filmDensity, settings.filmHalation, settings.filmBloom, settings.filmGrain, settings.filmStock, filmFilterId, settings.chromaticAberrationEnabled, chromaticAberrationFilterId, settings.pictorialismEnabled, pictorialismFilterId, isMobile, isStrokeActive]);
+  }, [settings.filmEnabled, settings.filmDensity, settings.filmHalation, settings.filmBloom, settings.filmGrain, settings.filmStock, filmFilterId, settings.chromaticAberrationEnabled, chromaticAberrationFilterId, settings.pictorialismEnabled, pictorialismFilterId, isMobile]);
 
   useImperativeHandle(ref, () => ({
     capturePattern: () => capturePattern(),
