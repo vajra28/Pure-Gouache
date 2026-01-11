@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { BrushSettings, Point, Layer } from '../types';
 import { clearCanvas } from '../utils/canvasUtils';
@@ -240,7 +239,7 @@ const blendColorDodge = (b: ColorRGB, s: ColorRGB, alpha: number) => {
 };
 
 // --- HOOK START ---
-export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, logicalWidth: number, logicalHeight: number) => {
+export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, logicalWidth: number, logicalHeight: number, pixelRatio: number = 1) => {
   const refs = useRef<EngineRefs>({ 
       layerCanvases: new Map(), mask: null, temp: null, composite: null, heightMapPattern: null, snapshot: null, stars: null, skyState: null, skyLut: null, patternImage: null
   });
@@ -640,7 +639,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
   // UPDATED: SAFE RESIZE WITHOUT CONTENT LOSS
   const updateSize = useCallback((width: number, height: number) => {
       const { temp, layerCanvases, mask, composite } = refs.current;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio; // Use capped pixel ratio
       const newWidth = width * dpr;
       const newHeight = height * dpr;
 
@@ -687,7 +686,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       } else if (state.current.history.length === 0) {
           commitHistory();
       }
-  }, [commitHistory]);
+  }, [commitHistory, pixelRatio]);
 
   const init = useCallback((getLayerCanvas: (id: string) => HTMLCanvasElement | null, mask: HTMLCanvasElement, heightMap?: HTMLCanvasElement) => {
     layers.forEach(l => {
@@ -742,7 +741,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
   }, [logicalHeight, applyAtmosphericGlow]);
 
   const getWetBuffer = useCallback((x: number, y: number, w: number, h: number): WetBuffer | null => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       const startX = Math.floor(x * dpr);
       const startY = Math.floor(y * dpr);
       const width = Math.ceil(w * dpr);
@@ -788,7 +787,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       } catch (e) {
           return null;
       }
-  }, [layers]);
+  }, [layers, pixelRatio]);
 
   const capturePattern = useCallback((): string | null => {
       const activeCanvas = getActiveCanvas();
@@ -852,13 +851,13 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
           }
       }
       if (settingsRef.current.useTexture && refs.current.heightMapPattern) { ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 0.5; ctx.fillStyle = refs.current.heightMapPattern; ctx.fill(); }
-      if (refs.current.mask) { ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 1.0; ctx.drawImage(refs.current.mask, 0, 0, ctx.canvas.width / window.devicePixelRatio, ctx.canvas.height / window.devicePixelRatio); }
+      if (refs.current.mask) { ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 1.0; ctx.drawImage(refs.current.mask, 0, 0, ctx.canvas.width / pixelRatio, ctx.canvas.height / pixelRatio); }
       ctx.restore(); commitHistory();
-  }, [commitHistory]);
+  }, [commitHistory, pixelRatio]);
 
   const drawStippleLasso = useCallback((points: {x: number, y: number}[]) => {
       const activeCtx = getActiveContext(); const activeCanvas = getActiveCanvas(); if (!activeCtx || !activeCanvas || points.length < 3) return;
-      const dpr = window.devicePixelRatio || 1; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
+      const dpr = pixelRatio; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
       let minX = points[0].x, maxX = points[0].x, minY = points[0].y, maxY = points[0].y; points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
       const angleRad = (currentSettings.patternAngle - 90) * (Math.PI / 180); const vecX = Math.cos(angleRad); const vecY = Math.sin(angleRad);
       const corners = [{x: minX, y: minY}, {x: maxX, y: minY}, {x: maxX, y: maxY}, {x: minX, y: maxY}]; let minProj = Infinity, maxProj = -Infinity; corners.forEach(c => { const proj = c.x * vecX + c.y * vecY; minProj = Math.min(minProj, proj); maxProj = Math.max(maxProj, proj); }); const projRange = Math.max(1, maxProj - minProj);
@@ -880,7 +879,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       if (currentSettings.useTexture && refs.current.heightMapPattern) { tCtx.globalCompositeOperation = 'destination-out'; tCtx.globalAlpha = 0.5; tCtx.fillStyle = refs.current.heightMapPattern; tCtx.fillRect(minX, minY, maxX - minX, maxY - minY); }
       if (refs.current.mask) { tCtx.globalCompositeOperation = 'destination-out'; tCtx.globalAlpha = 1.0; tCtx.drawImage(refs.current.mask, 0, 0, width/dpr, height/dpr); }
       tCtx.restore(); activeCtx.save(); activeCtx.globalAlpha = 1.0; activeCtx.globalCompositeOperation = currentSettings.isEraser ? 'destination-out' : (currentSettings.blendMode || 'source-over'); activeCtx.setTransform(1, 0, 0, 1, 0, 0); activeCtx.drawImage(refs.current.temp, 0, 0); activeCtx.restore(); tCtx.save(); tCtx.setTransform(1, 0, 0, 1, 0, 0); tCtx.clearRect(0, 0, width, height); tCtx.restore(); commitHistory();
-  }, [commitHistory]);
+  }, [commitHistory, pixelRatio]);
 
   const drawLasso = useCallback((points: {x: number, y: number}[]) => {
       const ctx = maskCtxRef.current; if (!ctx || points.length < 3) return;
@@ -891,7 +890,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
 
   const drawRectLassoFill = useCallback((p1: {x: number, y: number}, p2: {x: number, y: number}) => {
       const activeCtx = getActiveContext(); const tCtx = tempCtxRef.current; const activeCanvas = getActiveCanvas(); if (!activeCtx || !activeCanvas || !refs.current.temp || !tCtx) return;
-      const dpr = window.devicePixelRatio || 1; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
+      const dpr = pixelRatio; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
       const minX = Math.min(p1.x, p2.x); const minY = Math.min(p1.y, p2.y); const w = Math.abs(p2.x - p1.x); const h = Math.abs(p2.y - p1.y); 
       
       // SAFETY GUARD
@@ -903,7 +902,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       if (currentSettings.useTexture && refs.current.heightMapPattern) { tCtx.globalCompositeOperation = 'destination-out'; const textureInfluence = 0.5; tCtx.globalAlpha = textureInfluence; tCtx.fillStyle = refs.current.heightMapPattern; tCtx.fillRect(minX, minY, w, h); }
       if (refs.current.mask) { tCtx.globalCompositeOperation = 'destination-out'; tCtx.globalAlpha = 1.0; tCtx.drawImage(refs.current.mask, 0, 0, width / dpr, height / dpr); }
       tCtx.restore(); activeCtx.save(); activeCtx.globalAlpha = 1.0; activeCtx.globalCompositeOperation = currentSettings.isEraser ? 'destination-out' : (currentSettings.blendMode || 'source-over'); activeCtx.setTransform(1, 0, 0, 1, 0, 0); activeCtx.drawImage(refs.current.temp, 0, 0); activeCtx.restore(); tCtx.save(); tCtx.setTransform(1, 0, 0, 1, 0, 0); tCtx.clearRect(0, 0, width, height); tCtx.restore(); commitHistory();
-  }, [commitHistory, getWetBuffer]);
+  }, [commitHistory, getWetBuffer, pixelRatio]);
 
   const drawGradBlendLasso = useCallback((points: {x: number, y: number}[]) => {
       const activeCtx = getActiveContext();
@@ -911,7 +910,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       const activeCanvas = getActiveCanvas();
       if (!activeCtx || !activeCanvas || !refs.current.temp || !tCtx || points.length < 3) return;
 
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       const width = activeCanvas.width;
       const height = activeCanvas.height;
       const currentSettings = settingsRef.current;
@@ -1040,11 +1039,11 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       tCtx.restore();
 
       commitHistory();
-  }, [commitHistory]);
+  }, [commitHistory, pixelRatio]);
 
   const drawLassoFill = useCallback((points: {x: number, y: number}[]) => {
       const activeCtx = getActiveContext(); const tCtx = tempCtxRef.current; const activeCanvas = getActiveCanvas(); if (!activeCtx || !activeCanvas || !refs.current.temp || !tCtx || points.length < 3) return;
-      const dpr = window.devicePixelRatio || 1; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
+      const dpr = pixelRatio; const width = activeCanvas.width; const height = activeCanvas.height; const currentSettings = settingsRef.current;
       let minX = points[0].x, maxX = points[0].x, minY = points[0].y, maxY = points[0].y; points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
       const boundsW = (maxX - minX) * dpr; const boundsH = (maxY - minY) * dpr;
       
@@ -1058,7 +1057,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       if (currentSettings.useTexture && refs.current.heightMapPattern) { tCtx.globalCompositeOperation = 'destination-out'; const textureInfluence = 0.5; tCtx.globalAlpha = textureInfluence; tCtx.fillStyle = refs.current.heightMapPattern; tCtx.fill(); }
       if (refs.current.mask) { tCtx.globalCompositeOperation = 'destination-out'; tCtx.globalAlpha = 1.0; tCtx.drawImage(refs.current.mask, 0, 0, width / dpr, height / dpr); }
       tCtx.restore(); activeCtx.save(); activeCtx.globalAlpha = 1.0; activeCtx.globalCompositeOperation = currentSettings.isEraser ? 'destination-out' : (currentSettings.blendMode || 'source-over'); activeCtx.setTransform(1, 0, 0, 1, 0, 0); activeCtx.drawImage(refs.current.temp, 0, 0); activeCtx.restore(); tCtx.save(); tCtx.setTransform(1, 0, 0, 1, 0, 0); tCtx.clearRect(0, 0, width, height); tCtx.restore(); commitHistory();
-  }, [commitHistory, getWetBuffer]);
+  }, [commitHistory, getWetBuffer, pixelRatio]);
 
   // --- DRAWING LOGIC (AUTHORITATIVE) ---
   const drawSegment = (
@@ -1069,7 +1068,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
     if (!state.current.isDrawing || !getActiveContext() || !tempCtxRef.current) return;
     
     const tCtx = tempCtxRef.current;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = pixelRatio;
     const { lastPoint } = state.current;
     const { bristles } = state.current;
     const currentSettings = settingsRef.current;
@@ -1338,7 +1337,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       const activeCanvas = getActiveCanvas();
       if (!activeCtx || !activeCanvas || !refs.current.temp || !tempCtxRef.current || points.length === 0) return;
 
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       const w = activeCanvas.width / dpr;
       const h = activeCanvas.height / dpr;
       
@@ -1409,7 +1408,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       }
       wetBuffer = null;
       
-  }, [drawSegment, getWetBuffer]);
+  }, [drawSegment, getWetBuffer, pixelRatio]);
 
   const drawStroke = useCallback((x: number, y: number, pressure: number, tiltX?: number, tiltY?: number) => {
       drawBatch([{x, y, pressure: pressure || 0.5, tiltX, tiltY}]);
@@ -1444,7 +1443,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
   }, [commitHistory]);
 
   const pickColor = useCallback((x: number, y: number): string | null => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       
       for (let i = layers.length - 1; i >= 0; i--) {
           const layer = layers[i];
@@ -1469,7 +1468,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       }
       
       return canvasColorRef.current;
-  }, [layers, sampleSkyRGB]);
+  }, [layers, sampleSkyRGB, pixelRatio]);
 
   const clear = useCallback(() => {
       const activeCanvas = getActiveCanvas();
@@ -1556,7 +1555,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       const tCtx = tempCtxRef.current;
       if (!activeCtx || !activeCanvas || !tCtx || !refs.current.temp) return;
 
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       const width = activeCanvas.width;
       const height = activeCanvas.height;
 
@@ -1613,7 +1612,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
           refs.current.snapshot = null;
           commitHistory();
       }
-  }, [commitHistory, atmosphere]);
+  }, [commitHistory, atmosphere, pixelRatio]);
 
   const commitSnapshot = useCallback(() => {
       refs.current.snapshot = null;
@@ -1628,7 +1627,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
   }, []);
 
   const renderBrushCursor = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, pressure: number = 0.5, tiltX: number = 0, tiltY: number = 0) => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       const w = ctx.canvas.width / dpr;
       const h = ctx.canvas.height / dpr;
       ctx.clearRect(0, 0, w, h);
@@ -1710,7 +1709,7 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
       }
       
       ctx.restore();
-  }, []);
+  }, [pixelRatio]);
 
   return {
     init, startStroke, endStroke, drawStroke, drawBatch, clear, pickColor, drawTape, drawLasso, drawLassoFill, drawRectLassoFill,
