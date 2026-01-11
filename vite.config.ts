@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: './', // Ensures assets load correctly on GitHub Pages
+  base: '/pure-gouache/', // Ensures assets load correctly on GitHub Pages
   plugins: [
     react(),
     VitePWA({
