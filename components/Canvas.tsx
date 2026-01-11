@@ -193,8 +193,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   const lensFlareRef = useRef<HTMLCanvasElement>(null); 
   const cursorRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const tempReflectionRef = useRef<HTMLCanvasElement>(null); 
-  const sunBufferRef = useRef<HTMLCanvasElement>(null); 
+  const tempReflectionRef = useRef<HTMLCanvasElement | null>(null);
+  const sunBufferRef = useRef<HTMLCanvasElement | null>(null);
+
   
   const [visualTexture, setVisualTexture] = useState<string | null>(null);
   const [tapeStart, setTapeStart] = useState<{x: number, y: number} | null>(null);
