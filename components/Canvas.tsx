@@ -197,6 +197,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   const tempReflectionRef = useRef<HTMLCanvasElement | null>(null);
   const sunBufferRef = useRef<HTMLCanvasElement | null>(null);
 
+  
   const [visualTexture, setVisualTexture] = useState<string | null>(null);
   const [tapeStart, setTapeStart] = useState<{x: number, y: number} | null>(null);
   const [tapeCurrent, setTapeCurrent] = useState<{x: number, y: number} | null>(null);
@@ -221,7 +222,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   const prevHorizonRef = useRef(0);
 
   // PERFORMANCE: Cap DPR on mobile to prevent excessive memory usage/lag on iPad Pro
-  const pixelRatio = useMemo(() => isMobile ? 1.0 : window.devicePixelRatio || 1, [isMobile]);
+  const pixelRatio = useMemo(() => isMobile ? 1.0 : (window.devicePixelRatio || 1), [isMobile]);
 
   // Constants for Wash Calculation
   const WARM_TINT = { r: 255, g: 160, b: 60 };
@@ -243,6 +244,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   } = useGouacheEngine(settings, effectiveCanvasColor, docWidth, docHeight, pixelRatio);
 
   // Use refs for animation loop data to avoid react effect re-runs (stutter fix)
+  // FIX: Allow inference or explicit MutableRefObject to avoid readonly 'current' errors
   const settingsRef = useRef(settings);
   const atmosphereRef = useRef(atmosphere);
   const layersRef = useRef(layers);
