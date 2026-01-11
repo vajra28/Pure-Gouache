@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
-import { BrushSettings } from '../types';
-import { useGouacheEngine } from '../hooks/useGouacheEngine';
+import { BrushSettings, Layer } from '../types';
+import { useGouacheEngine, AtmosphereState } from '../hooks/useGouacheEngine';
 import { processPaperTexture, createNoiseTexture } from '../utils/canvasUtils';
 import { hexToRgb, lerpColor, rgbToString, rgbToHex } from '../utils/color';
 
@@ -238,9 +238,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   } = useGouacheEngine(settings, effectiveCanvasColor, docWidth, docHeight);
 
   // Use refs for animation loop data to avoid react effect re-runs (stutter fix)
-  const settingsRef = useRef(settings);
-  const atmosphereRef = useRef(atmosphere);
-  const layersRef = useRef(layers);
+  const settingsRef = useRef<BrushSettings>(settings);
+  const atmosphereRef = useRef<AtmosphereState>(atmosphere);
+  const layersRef = useRef<Layer[]>(layers);
   const drawWaterPlaneRef = useRef<any>(null); // assigned below
 
   useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -530,7 +530,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         const currentAtmosphere = atmosphereRef.current;
         const currentLayers = layersRef.current;
 
-        if (currentSettings.skyEnabled && skyCtx && currentAtmosphere.skyColors) {
+        if (currentSettings.skyEnabled && skyCanvas && skyCtx && currentAtmosphere.skyColors) {
             if (skyCanvas.width !== docWidth * dpr || skyCanvas.height !== docHeight * dpr) {
                 skyCanvas.width = docWidth * dpr;
                 skyCanvas.height = docHeight * dpr;
