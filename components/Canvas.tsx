@@ -238,9 +238,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   } = useGouacheEngine(settings, effectiveCanvasColor, docWidth, docHeight);
 
   // Use refs for animation loop data to avoid react effect re-runs (stutter fix)
-  const settingsRef = useRef<BrushSettings>(settings);
-  const atmosphereRef = useRef<AtmosphereState>(atmosphere);
-  const layersRef = useRef<Layer[]>(layers);
+  // FIX: Allow inference or explicit MutableRefObject to avoid readonly 'current' errors
+  const settingsRef = useRef(settings);
+  const atmosphereRef = useRef(atmosphere);
+  const layersRef = useRef(layers);
   const drawWaterPlaneRef = useRef<any>(null); // assigned below
 
   useEffect(() => { settingsRef.current = settings; }, [settings]);
