@@ -106,7 +106,10 @@ export interface AtmosphereState {
 // --- CONSTANTS & HELPERS ---
 const WARM_TINT = { r: 255, g: 160, b: 60 };
 const COOL_TINT = { r: 40, g: 70, b: 110 };
-const MAX_HISTORY_BYTES = 150 * 1024 * 1024; 
+// iOS Safari is aggressive with memory. 80MB is a safe limit for undo stack + layers.
+const MAX_HISTORY_BYTES = 80 * 1024 * 1024; 
+// Cap physics particles to prevent CPU bottlenecks on large brushes
+const MAX_BRISTLES = 350; 
 
 const SKY_KEYS = {
     day: { zenith: {r: 25, g: 70, b: 160}, upper: {r: 70, g: 130, b: 210}, ozone: {r: 110, g: 170, b: 230}, glow: {r: 180, g: 210, b: 240}, horizon: {r: 210, g: 235, b: 255}, sun: {r: 255, g: 255, b: 245} },
@@ -310,7 +313,10 @@ export const useGouacheEngine = (settings: BrushSettings, canvasColor: string, l
     } else {
         let countMultiplier = 1.5;
         if (type === 'fan3') countMultiplier = 3.5;
-        const bristleCount = Math.floor(size * countMultiplier); 
+        let bristleCount = Math.floor(size * countMultiplier); 
+        
+        // CAP BRISTLES FOR PERFORMANCE (Mobile Optimization)
+        bristleCount = Math.min(bristleCount, MAX_BRISTLES);
         
         for (let i = 0; i < bristleCount; i++) {
             let dx = 0, dy = 0, length = 1.0, thickness = 1.0;
