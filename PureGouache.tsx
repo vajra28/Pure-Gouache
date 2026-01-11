@@ -154,19 +154,25 @@ const PureGouache: React.FC = () => {
   // Responsive Check
   useEffect(() => {
     const checkSize = () => {
-        // Simple check: Assume touch devices or small screens are mobile
-        const mobile = window.innerWidth < 1024 || 'ontouchstart' in window;
+        // Updated Detection: iPad Pro landscape is 1366px.
+        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isSmallOrTablet = window.innerWidth <= 1366; 
+        const mobile = isTouch && isSmallOrTablet;
+        
         setIsMobile(mobile);
+        
         if (mobile) {
             setIsControlsOpen(false);
             setIsPaletteOpen(false);
             setIsToolbarOpen(false);
+            // Default to fit screen better on mobile
+            setZoom(0.65);
         } else {
-            // Restore desktop defaults if resizing back
             setIsControlsOpen(true);
             setIsToolbarOpen(true);
             setIsColorPickerOpen(true);
             setIsPaletteOpen(true);
+            setZoom(0.85);
         }
     };
     checkSize();
