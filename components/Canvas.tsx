@@ -25,6 +25,7 @@ interface CanvasProps {
   height: number;
   washTemp: number;
   washIntensity: number;
+  isMobile: boolean; // Add isMobile prop
 }
 
 export interface CanvasHandle {
@@ -184,7 +185,7 @@ const drawGeometricLensFlare = (
 export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({ 
     settings, onChange, canvasColor, triggerClear, triggerClearTape, triggerInvertMask, triggerUndo, triggerRedo, onPickColor,
     zoom, pan, onPan, isSpacePressed, customTextureUrl, grayscaleMode, onLayerMethodsReady, width: docWidth, height: docHeight,
-    washTemp, washIntensity
+    washTemp, washIntensity, isMobile
 }, ref) => {
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const maskRef = useRef<HTMLCanvasElement>(null); 
@@ -196,7 +197,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   const tempReflectionRef = useRef<HTMLCanvasElement | null>(null);
   const sunBufferRef = useRef<HTMLCanvasElement | null>(null);
 
-  
   const [visualTexture, setVisualTexture] = useState<string | null>(null);
   const [tapeStart, setTapeStart] = useState<{x: number, y: number} | null>(null);
   const [tapeCurrent, setTapeCurrent] = useState<{x: number, y: number} | null>(null);
@@ -210,6 +210,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   
   const [isDraggingFlare, setIsDraggingFlare] = useState(false);
   const [isAltPressed, setIsAltPressed] = useState(false);
+  const [isStrokeActive, setIsStrokeActive] = useState(false);
 
   // New: Rect Lasso
   const [rectLassoStart, setRectLassoStart] = useState<{x: number, y: number} | null>(null);
@@ -218,6 +219,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   // New: Dirty state for reflection caching
   const reflectionDirtyRef = useRef(true);
   const prevHorizonRef = useRef(0);
+
+  // PERFORMANCE: Cap DPR on mobile to prevent excessive memory usage/lag on iPad Pro
+  const pixelRatio = useMemo(() => isMobile ? 1.0 : window.devicePixelRatio || 1, [isMobile]);
 
   // Constants for Wash Calculation
   const WARM_TINT = { r: 255, g: 160, b: 60 };
@@ -236,10 +240,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       drawStippleLasso, drawPatternLasso, drawPatternLine, drawGradBlendLasso, capturePattern,
       clearMask, invertMask, renderBrushCursor, undo, redo, drawSkyGradient, commitSnapshot, cancelSnapshot, atmosphere, 
       layers, activeLayerId, setActiveLayerId, addLayer, removeLayer, toggleLayerVisibility, toggleLayerGlow, setPaperTexture 
-  } = useGouacheEngine(settings, effectiveCanvasColor, docWidth, docHeight);
+  } = useGouacheEngine(settings, effectiveCanvasColor, docWidth, docHeight, pixelRatio);
 
   // Use refs for animation loop data to avoid react effect re-runs (stutter fix)
-  // FIX: Allow inference or explicit MutableRefObject to avoid readonly 'current' errors
   const settingsRef = useRef(settings);
   const atmosphereRef = useRef(atmosphere);
   const layersRef = useRef(layers);
@@ -309,12 +312,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
   // ADDED: Resize logic for cursor canvas to match document dimensions
   useEffect(() => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       if (cursorRef.current) {
           cursorRef.current.width = docWidth * dpr;
           cursorRef.current.height = docHeight * dpr;
       }
-  }, [docWidth, docHeight]);
+  }, [docWidth, docHeight, pixelRatio]);
 
   const layerMethods = useMemo(() => ({
       layers, activeLayerId, setActiveLayerId, addLayer, removeLayer, toggleLayerVisibility, toggleLayerGlow
@@ -521,7 +524,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   useEffect(() => {
     let animId: number;
     const renderSkyComposite = () => {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = pixelRatio;
         const skyCanvas = skyOcclusionRef.current;
         const skyCtx = skyCanvas?.getContext('2d');
         const waterCanvas = waterCanvasRef.current;
@@ -651,14 +654,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
     renderSkyComposite();
     return () => cancelAnimationFrame(animId);
-  }, [docWidth, docHeight]); // Dependency array reduced to dimensions only
+  }, [docWidth, docHeight, pixelRatio]);
 
   useEffect(() => {
       const flareCanvas = lensFlareRef.current;
       if (!flareCanvas) return;
       const ctx = flareCanvas.getContext('2d');
       if (!ctx) return;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = pixelRatio;
       if (flareCanvas.width !== docWidth * dpr || flareCanvas.height !== docHeight * dpr) {
           flareCanvas.width = docWidth * dpr;
           flareCanvas.height = docHeight * dpr;
@@ -683,7 +686,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
           const sunColorRgb = parseColor(sun);
           drawGeometricLensFlare(ctx, docWidth, docHeight, sunX, sunY, sunColorRgb, settings.lensFlareIntensity, 1.0, settings.lensFlareScale || 1.0, settings.skyScale, tipX, tipY);
       }
-  }, [settings.skyEnabled, settings.sunEnabled, settings.lensFlareEnabled, settings.lensFlareIntensity, settings.lensFlareScale, settings.lensFlareHandleEnabled, settings.flareTipPos, settings.skyScale, atmosphere.skyColors, docWidth, docHeight]);
+  }, [settings.skyEnabled, settings.sunEnabled, settings.lensFlareEnabled, settings.lensFlareIntensity, settings.lensFlareScale, settings.lensFlareHandleEnabled, settings.flareTipPos, settings.skyScale, atmosphere.skyColors, docWidth, docHeight, pixelRatio]);
   
   const showHandle = settings.skyEnabled && settings.sunEnabled && settings.lensFlareEnabled && settings.lensFlareHandleEnabled && atmosphere.skyColors;
   let handleX = 0; let handleY = 0;
@@ -713,6 +716,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
           return;
       }
 
+      setIsStrokeActive(true); // Disable Filters on Mobile
       const p = e.pressure || 0.5;
       if (settings.isGradientMode) { setGradientStart({ x, y }); setGradientCurrent({ x, y }); } 
       else if (settings.isTapeMode || settings.isPatternLine) { setTapeStart({ x, y }); setTapeCurrent({ x, y }); }
@@ -752,6 +756,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
       isPanning.current = false;
+      setIsStrokeActive(false); // Re-enable Filters
       if (isDraggingFlare) { setIsDraggingFlare(false); e.currentTarget.releasePointerCapture(e.pointerId); return; }
       if (e.altKey || isAltPressed) {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -940,6 +945,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   }, [settings.risoEnabled, risoFilterId]);
 
   const globalFilterUrl = useMemo(() => {
+      if (isMobile && isStrokeActive) return 'none'; // Throttle on mobile during drawing
+
       const filters = [];
       // Chain Global Filters: Chromatic Aberration -> Film -> Pictorialism
       // This allows Pictorialism (Grain/Softness) to affect the CA and Film look
@@ -951,7 +958,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       if (settings.pictorialismEnabled) filters.push(`url(#${pictorialismFilterId})`);
       
       return filters.length > 0 ? filters.join(' ') : 'none';
-  }, [settings.filmEnabled, settings.filmDensity, settings.filmHalation, settings.filmBloom, settings.filmGrain, settings.filmStock, filmFilterId, settings.chromaticAberrationEnabled, chromaticAberrationFilterId, settings.pictorialismEnabled, pictorialismFilterId]);
+  }, [settings.filmEnabled, settings.filmDensity, settings.filmHalation, settings.filmBloom, settings.filmGrain, settings.filmStock, filmFilterId, settings.chromaticAberrationEnabled, chromaticAberrationFilterId, settings.pictorialismEnabled, pictorialismFilterId, isMobile, isStrokeActive]);
 
   useImperativeHandle(ref, () => ({
     capturePattern: () => capturePattern(),
