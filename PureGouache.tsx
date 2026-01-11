@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Controls } from './components/Controls';
 import { Canvas, CanvasHandle } from './components/Canvas';
@@ -155,7 +154,8 @@ const PureGouache: React.FC = () => {
   // Responsive Check
   useEffect(() => {
     const checkSize = () => {
-        const mobile = window.innerWidth < 1024;
+        // Simple check: Assume touch devices or small screens are mobile
+        const mobile = window.innerWidth < 1024 || 'ontouchstart' in window;
         setIsMobile(mobile);
         if (mobile) {
             setIsControlsOpen(false);
@@ -375,6 +375,7 @@ const PureGouache: React.FC = () => {
         washIntensity={washIntensity}
         width={1080}
         height={1080}
+        isMobile={isMobile}
       />
 
       {/* --- Desktop Bottom Tray --- */}
