@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Pure Gouache</title>
+    
+    <!-- PWA / iOS Capabilities -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gouache">
+    <meta name="theme-color" content="#09090b">
+    <link rel="apple-touch-icon" href="https://lucide.dev/logo.light.svg">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlB1cmUgR291YWNoZSBTdHVkaW8iLAogICJzaG9ydF9uYW1lIjogIkdvdWFjaGUiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDkwOTBiIiwKICAidGhlbWVfY29sb3IiOiAiIzA5MDkwYiIsCiAgIm9yaWVudGF0aW9uIjogImFueSIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vbHVjaWRlLmRldi9sb2dvLmxpZ2h0LnN2ZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9sdWNpZGUuZGV2L2xvZ28ubGlnaHQuc3ZnIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfQogIF0KfQ==">
+
+
+    <!-- Tailwind CDN (kept for simplicity, though CSS build is preferred in production) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        overflow: hidden;
+        touch-action: none;
+        background-color: #09090b;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    </style>
+
+<link rel="stylesheet" href="/index.css">
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "vite-plugin-pwa": "https://esm.sh/vite-plugin-pwa@^1.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/Pure-Gouache/assets/index-2c2e16ee.js"></script>
+<link rel="manifest" href="/Pure-Gouache/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Pure-Gouache/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+    <!-- Point to the main TypeScript entry file -->
+    
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+
+
+  </body>
+</html>
